@@ -6,8 +6,8 @@ IMPROVEMENTS TO BE MADE:
 1. [FIXED] No way to quit an ongoing match. 
 2. [FIXED] Seperate highscores for different modes ?
 3. [FIXED] Stop playing sounds such as explosion, etc after the game is over ?
-4. A way to clear/reset the highscore ?
-5. A proper settings menu/screen to move/have these functionalities, alongside already existing ones such as the volume slider, etc.
+4. [FIXED] A way to clear/reset the highscore ?
+5. [FIXED] A proper settings menu/screen to move/have these functionalities, alongside already existing ones such as the volume slider, etc.
 """
 
 import os
@@ -79,6 +79,7 @@ class Game:
         self.in_menu = True
         self.in_mode_select = False
         self.running = True
+        self.in_settings = False
         
         self.blade_paths = {}
         self.particles = []
@@ -93,18 +94,26 @@ class Game:
 
         # Main Menu Buttons
         self.play_btn = Button(
-            "PLAY", 60, self.screen_width / 2, self.screen_height * 0.52,
+            "PLAY", 60, self.screen_width / 2, self.screen_height * 0.45,
+            340, 100, self.font_file
+        )
+        self.settings_btn = Button(
+            "SETTINGS", 50, self.screen_width / 2, self.screen_height * 0.62,
             340, 100, self.font_file
         )
         self.quit_btn = Button(
-            "QUIT", 60, self.screen_width / 2, self.screen_height * 0.82,
+            "QUIT", 60, self.screen_width / 2, self.screen_height * 0.79,
             340, 100, self.font_file
         )
         
-        # Volume slider placed directly between PLAY and QUIT
+        # Settings Menu Elements
         self.volume_slider = Slider(
-            int(self.screen_width / 2 - 230), int(self.screen_height * 0.67),
+            int(self.screen_width / 2 - 230), int(self.screen_height * 0.45),
             460, initial_val=0.7
+        )
+        self.reset_scores_btn = Button(
+            "RESET SCORES", 45, self.screen_width / 2, self.screen_height * 0.65,
+            380, 90, self.font_file
         )
         self.sync_volume()
 
@@ -215,6 +224,7 @@ class Game:
     def show_menu_screen(self):
         waiting = True
         self.in_mode_select = False
+        self.in_settings = False
         
         while waiting and self.running:
             self.clock.tick(FPS)
@@ -224,6 +234,8 @@ class Game:
             
             if self.in_mode_select:
                 best_text = "Select a Mode"
+            elif self.in_settings:
+                best_text = "Settings"
             else:
                 best = max(self.highscores.values()) if self.highscores else 0
                 best_text = f"Highest Score: {best}"
@@ -233,17 +245,22 @@ class Game:
                 self.screen_width / 2, self.screen_height * 0.40, color=GOLD
             )
             
-            if not self.in_mode_select:
-                # Base Menu
-                self.volume_slider.draw(self.display, self.font)
-                self.play_btn.draw(self.display)
-                self.quit_btn.draw(self.display)
-            else:
+            if self.in_mode_select:
                 # Sub-menu overlay
                 self.classic_btn.draw(self.display)
                 self.arcade_btn.draw(self.display)
                 self.zen_btn.draw(self.display)
                 self.back_btn.draw(self.display)
+            elif self.in_settings:
+                # Settings overlay
+                self.volume_slider.draw(self.display, self.font)
+                self.reset_scores_btn.draw(self.display)
+                self.back_btn.draw(self.display)
+            else:
+                # Base Menu
+                self.play_btn.draw(self.display)
+                self.settings_btn.draw(self.display)
+                self.quit_btn.draw(self.display)
                 
             pygame.display.flip()
                 
@@ -253,6 +270,8 @@ class Game:
                 ):
                     if self.in_mode_select:
                         self.in_mode_select = False
+                    elif self.in_settings:
+                        self.in_settings = False
                     else:
                         self.running = False
                         waiting = False
@@ -261,17 +280,16 @@ class Game:
                     px = int(event.x * self.screen_width)
                     py = int(event.y * self.screen_height)
                     
-                    if not self.in_mode_select:
+                    if self.in_settings:
                         self.volume_slider.update_touch(px, py, True)
-                        
-                        if self.play_btn.is_clicked(px, py):
+                        if self.reset_scores_btn.is_clicked(px, py):
                             self.snd_click.play()
-                            self.in_mode_select = True
-                        elif self.quit_btn.is_clicked(px, py):
+                            self.highscores = {"classic": 0, "arcade": 0, "zen": 0}
+                            self.save_highscores()
+                        elif self.back_btn.is_clicked(px, py):
                             self.snd_click.play()
-                            self.running = False
-                            waiting = False
-                    else:
+                            self.in_settings = False
+                    elif self.in_mode_select:
                         if self.classic_btn.is_clicked(px, py):
                             self.start_game('classic')
                             waiting = False
@@ -284,16 +302,27 @@ class Game:
                         elif self.back_btn.is_clicked(px, py):
                             self.snd_click.play()
                             self.in_mode_select = False
+                    else:
+                        if self.play_btn.is_clicked(px, py):
+                            self.snd_click.play()
+                            self.in_mode_select = True
+                        elif self.settings_btn.is_clicked(px, py):
+                            self.snd_click.play()
+                            self.in_settings = True
+                        elif self.quit_btn.is_clicked(px, py):
+                            self.snd_click.play()
+                            self.running = False
+                            waiting = False
                         
                 elif event.type == pygame.FINGERMOTION:
-                    if not self.in_mode_select:
+                    if self.in_settings:
                         px = int(event.x * self.screen_width)
                         py = int(event.y * self.screen_height)
                         if self.volume_slider.update_touch(px, py, True):
                             self.sync_volume()
                         
                 elif event.type == pygame.FINGERUP:
-                    if not self.in_mode_select:
+                    if self.in_settings:
                         self.volume_slider.update_touch(0, 0, False)
 
     def show_results_screen(self):
