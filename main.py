@@ -3,7 +3,7 @@
 """
 IMPROVEMENTS TO BE MADE: 
 
-1. No way to quit an ongoing match. 
+1. [FIXED] No way to quit an ongoing match. 
 2. Seperate highscores for different modes ?
 3. Stop playing sounds such as explosion, etc after the game is over ?
 4. A way to clear/reset the highscore ?
@@ -130,6 +130,12 @@ class Game:
         self.continue_btn = Button(
             "CONTINUE", 60, self.screen_width / 2, self.screen_height * 0.75,
             380, 100, self.font_file
+        )
+
+        # In-Game Quit Button
+        self.quit_match_btn = Button(
+            "QUIT", 40, 100, self.screen_height - 60,
+            150, 70, self.font_file
         )
         
         self.white_life_img = pygame.image.load(resource_path('white_lives.png'))
@@ -401,11 +407,18 @@ class Game:
             if event.type == pygame.QUIT or (
                 event.type == pygame.KEYDOWN and event.key == pygame.K_AC_BACK
             ):
-                self.running = False
+                self.in_menu = True
+                self.snd_click.play()
                 
             elif event.type == pygame.FINGERDOWN:
                 px = int(event.x * self.screen_width)
                 py = int(event.y * self.screen_height)
+                
+                if self.quit_match_btn.is_clicked(px, py):
+                    self.snd_click.play()
+                    self.in_menu = True
+                    return
+
                 self.active_touches[event.finger_id] = (px, py)
                 self.touch_combo_counts[event.finger_id] = 0
                 self.process_slice_input(px, py, event.finger_id)
@@ -499,6 +512,8 @@ class Game:
             time_sec = max(0, self.time_left // FPS)
             time_surface = self.score_font.render(f'Time: {time_sec}s', True, GOLD)
             self.display.blit(time_surface, (self.screen_width - 300, 30))
+            
+        self.quit_match_btn.draw(self.display)
         
         for fruit in self.fruits:
             fruit.draw(self.display)
