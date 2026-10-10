@@ -4,7 +4,7 @@
 IMPROVEMENTS TO BE MADE: 
 
 1. [FIXED] No way to quit an ongoing match. 
-2. Seperate highscores for different modes ?
+2. [FIXED] Seperate highscores for different modes ?
 3. Stop playing sounds such as explosion, etc after the game is over ?
 4. A way to clear/reset the highscore ?
 5. A proper settings menu/screen to move/have these functionalities, alongside already existing ones such as the volume slider, etc.
@@ -68,7 +68,7 @@ class Game:
         self.active_touches = {}
         self.player_lives = 3
         self.score = 0
-        self.highscore = self.load_highscore()
+        self.highscores = self.load_highscores()
         self.is_new_highscore = False
         
         self.game_mode = 'classic'
@@ -144,17 +144,33 @@ class Game:
         self.shake_duration = 0
         self.shake_intensity = 0
 
-    def load_highscore(self):
+    def load_highscores(self):
+        import json
+        scores = {"classic": 0, "arcade": 0, "zen": 0}
+        
+        if os.path.exists("highscore.txt"):
+            try:
+                with open("highscore.txt", "r") as f:
+                    old_score = int(f.read().strip())
+                    scores["classic"] = old_score
+                os.remove("highscore.txt")
+            except Exception:
+                pass
+                
         try:
-            with open("highscore.txt", "r") as f:
-                return int(f.read().strip())
+            with open("highscores.json", "r") as f:
+                loaded = json.load(f)
+                scores.update(loaded)
         except Exception:
-            return 0
+            pass
+            
+        return scores
 
-    def save_highscore(self):
+    def save_highscores(self):
+        import json
         try:
-            with open("highscore.txt", "w") as f:
-                f.write(str(self.highscore))
+            with open("highscores.json", "w") as f:
+                json.dump(self.highscores, f)
         except Exception:
             pass
 
@@ -206,9 +222,14 @@ class Game:
             self.display.blit(self.background, (0, 0))
             self.display.blit(self.raw_logo, self.logo_rect)
             
-            # Original text scales restored
+            if self.in_mode_select:
+                best_text = "Select a Mode"
+            else:
+                best = max(self.highscores.values()) if self.highscores else 0
+                best_text = f"Highest Score: {best}"
+
             self.draw_text(
-                f"Best Score: {self.highscore}", 75,
+                best_text, 75,
                 self.screen_width / 2, self.screen_height * 0.40, color=GOLD
             )
             
@@ -276,10 +297,11 @@ class Game:
                         self.volume_slider.update_touch(0, 0, False)
 
     def show_results_screen(self):
-        if self.score > self.highscore:
-            self.highscore = self.score
+        current_highscore = self.highscores.get(self.game_mode, 0)
+        if self.score > current_highscore:
+            self.highscores[self.game_mode] = self.score
             self.is_new_highscore = True
-            self.save_highscore()
+            self.save_highscores()
             self.snd_highscore.play()
         else:
             self.is_new_highscore = False
@@ -310,7 +332,7 @@ class Game:
                     self.screen_height * 0.42, color=WHITE
                 )
                 self.draw_text(
-                    f"Best Score : {self.highscore}", 60,
+                    f"Best Score : {current_highscore}", 60,
                     self.screen_width / 2, self.screen_height * 0.55, color=GOLD
                 )
                 
@@ -357,9 +379,9 @@ class Game:
             self.time_left = 90 * FPS 
             self.fruit_names = [name for name in FRUIT_NAMES if name != 'bomb']
 
-        if self.highscore >= 300:
+        if self.highscores[self.game_mode] >= 300:
             self.blade_theme = 'poison'
-        elif self.highscore >= 100:
+        elif self.highscores[self.game_mode] >= 100:
             self.blade_theme = 'water'
         else:
             self.blade_theme = 'default'
