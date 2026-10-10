@@ -5,7 +5,7 @@ IMPROVEMENTS TO BE MADE:
 
 1. [FIXED] No way to quit an ongoing match. 
 2. [FIXED] Seperate highscores for different modes ?
-3. Stop playing sounds such as explosion, etc after the game is over ?
+3. [FIXED] Stop playing sounds such as explosion, etc after the game is over ?
 4. A way to clear/reset the highscore ?
 5. A proper settings menu/screen to move/have these functionalities, alongside already existing ones such as the volume slider, etc.
 """
@@ -297,6 +297,7 @@ class Game:
                         self.volume_slider.update_touch(0, 0, False)
 
     def show_results_screen(self):
+        pygame.mixer.stop()
         current_highscore = self.highscores.get(self.game_mode, 0)
         if self.score > current_highscore:
             self.highscores[self.game_mode] = self.score
