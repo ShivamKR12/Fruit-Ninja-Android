@@ -17,6 +17,8 @@ source.include_exts = py,png,jpg,jpeg,ogg,wav,mp3,ttf,otf,json,atlas
 
 # (str) Icon of the application
 icon.filename = %(source.dir)s/assets/fruit-ninja-logo.png
+icon.adaptive_foreground.filename = %(source.dir)s/assets/icon_fg.png
+icon.adaptive_background.filename = %(source.dir)s/assets/icon_bg.png
 
 # (str) Application versioning
 version = 1.0
@@ -25,7 +27,7 @@ version = 1.0
 requirements = python3==3.10.12,hostpython3==3.10.12,pygame
 
 # (str) Supported orientation (one of landscape, portrait or all)
-orientation = landscape
+orientation = portrait
 
 # (bool) Indicate whether the screen should be fullscreen
 fullscreen = 1
